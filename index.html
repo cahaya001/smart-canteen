@@ -394,14 +394,12 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
         <div><label>Kategori</label>
           <select id="newType"><option value="makanan">Makanan</option><option value="minuman">Minuman</option></select>
         </div>
-        <div><label>Status Kesehatan</label>
-          <select id="newCat"><option value="green">Seimbang</option><option value="yellow">Tinggi Lemak</option><option value="red">Pedas/Batasi</option></select>
-        </div>
-        <div class="full-width"><label>URL Gambar</label><input type="text" id="newImg" placeholder="https://..."></div>
-        <div class="full-width"><label>Deskripsi</label><textarea id="newDesc" rows="2"></textarea></div>
+        <!-- Status Kesehatan dihapus di sini -->
         <div><label>Ketersediaan</label>
           <select id="newAvail"><option value="true">Tersedia</option><option value="false">Habis</option></select>
         </div>
+        <div class="full-width"><label>URL Gambar</label><input type="text" id="newImg" placeholder="https://..."></div>
+        <div class="full-width"><label>Deskripsi</label><textarea id="newDesc" rows="2"></textarea></div>
         <div style="display:flex;align-items:flex-end;"><button class="btn-admin-save" onclick="saveMenu()">Simpan Menu</button></div>
       </div>
     </div>
@@ -420,7 +418,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
 
 <!-- SCRIPT MODULE UNTUK FIREBASE V9 -->
 <script type="module">
-  // Import fungsi Firebase yang dibutuhkan
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
@@ -447,12 +444,12 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
 
   // ================= DATA INIT =================
   const defaultMenu = [
-    { id: 1, name: "Rice Bowl", harga: 15000, desc: "Nasi dengan lauk pilihan seimbang.", cat: "green", img: "https://i.ibb.co.com/v4R5PPKd/ricebowl.jpg", type: "makanan", available: true },
-    { id: 2, name: "Spaghetti", harga: 12000, desc: "Pasta Italia dengan saus tomat.", cat: "green", img: "https://i.ibb.co.com/bjftf3gK/mie.jpg", type: "makanan", available: true },
-    { id: 3, name: "Mie Pangsit", harga: 15000, desc: "Mie kuah dengan pangsit.", cat: "green", img: "https://i.ibb.co.com/2zyvMTH/pangsit.jpg", type: "makanan", available: true },
-    { id: 4, name: "Ayam Asam Manis", harga: 15000, desc: "Ayam saus asam manis + nasi.", cat: "green", img: "https://i.ibb.co.com/Cp9fmkLb/asam-manis.jpg", type: "makanan", available: true },
-    { id: 5, name: "Mie Goreng", harga: 10000, desc: "Mie tumis gurih.", cat: "yellow", img: "https://i.ibb.co.com/2x4J0B1/miegoreng.jpg", type: "makanan", available: true },
-    { id: 6, name: "Nasi Goreng", harga: 12000, desc: "Nasi goreng telur & sayur.", cat: "yellow", img: "https://i.ibb.co.com/2Y0F6TT2/nasigoreng.jpg", type: "makanan", available: true },
+    { id: 1, name: "Rice Bowl", harga: 15000, desc: "Nasi dengan lauk pilihan seimbang.", img: "https://i.ibb.co.com/v4R5PPKd/ricebowl.jpg", type: "makanan", available: true },
+    { id: 2, name: "Spaghetti", harga: 12000, desc: "Pasta Italia dengan saus tomat.", img: "https://i.ibb.co.com/bjftf3gK/mie.jpg", type: "makanan", available: true },
+    { id: 3, name: "Mie Pangsit", harga: 15000, desc: "Mie kuah dengan pangsit.", img: "https://i.ibb.co.com/2zyvMTH/pangsit.jpg", type: "makanan", available: true },
+    { id: 4, name: "Ayam Asam Manis", harga: 15000, desc: "Ayam saus asam manis + nasi.", img: "https://i.ibb.co.com/Cp9fmkLb/asam-manis.jpg", type: "makanan", available: true },
+    { id: 5, name: "Mie Goreng", harga: 10000, desc: "Mie tumis gurih.", img: "https://i.ibb.co.com/2x4J0B1/miegoreng.jpg", type: "makanan", available: true },
+    { id: 6, name: "Nasi Goreng", harga: 12000, desc: "Nasi goreng telur & sayur.", img: "https://i.ibb.co.com/2Y0F6TT2/nasigoreng.jpg", type: "makanan", available: true },
   ];
 
   let cart = [];
@@ -491,16 +488,13 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
 
   // ================= DATA HANDLING (SYNC) =================
 
-  // Listen for Menu Changes
   function initMenu() {
-    // Firebase Listener
     onValue(ref(db, 'menu'), (snapshot) => {
       const data = snapshot.val();
       if (data) {
         menuData = Object.values(data);
       } else {
         menuData = defaultMenu;
-        // Save default to cloud if empty
         const json = {};
         defaultMenu.forEach(m => json[m.id] = m);
         set(ref(db, 'menu'), json);
@@ -516,7 +510,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     set(ref(db, 'menu'), json);
   }
 
-  // Listen for Order Changes
   function initOrders() {
     onValue(ref(db, 'orders'), (snapshot) => {
       const data = snapshot.val();
@@ -833,7 +826,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
       dateString: now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })
     };
     
-    // Push to Firebase directly
     set(ref(db, 'orders/' + newOrder.id), newOrder);
     
     cart = [];
@@ -967,7 +959,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     const name = document.getElementById('newName').value.trim();
     const price = parseInt(document.getElementById('newPrice').value);
     const type = document.getElementById('newType').value;
-    const cat = document.getElementById('newCat').value;
+    // cat dihapus dari sini
     const img = document.getElementById('newImg').value.trim();
     const desc = document.getElementById('newDesc').value.trim();
     const available = document.getElementById('newAvail').value === 'true';
@@ -978,12 +970,14 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     
     if (editingId) {
       const index = data.findIndex(m => m.id === editingId);
-      if (index !== -1) data[index] = { ...data[index], name, harga: price, type, cat, img, desc, available };
+      // cat dihapus dari update
+      if (index !== -1) data[index] = { ...data[index], name, harga: price, type, img, desc, available };
       editingId = null; 
       document.getElementById('formTitle').textContent = "Tambah Menu Baru";
       document.querySelector('.btn-admin-save').textContent = "Simpan Menu";
     } else {
-      data.push({ id, name, harga: price, type, cat, img, desc, available });
+      // cat dihapus dari insert
+      data.push({ id, name, harga: price, type, img, desc, available });
     }
 
     saveMenuData(data);
@@ -998,7 +992,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     document.getElementById('newName').value = item.name;
     document.getElementById('newPrice').value = item.harga;
     document.getElementById('newType').value = item.type;
-    document.getElementById('newCat').value = item.cat;
+    // cat dihapus dari populate form
     document.getElementById('newImg').value = item.img;
     document.getElementById('newDesc').value = item.desc;
     document.getElementById('newAvail').value = item.available.toString();
