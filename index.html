@@ -11,7 +11,7 @@
   --bg: #fef7f0; --fg: #1a1a2e; --muted: #6b7280; --accent: #e63946;
   --accent-light: #ff8fa3; --card: #ffffff; --border: #e5e7eb;
   --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
-  --info: #3b82f6;
+  --info: #3b82f6; --gold: #fbbf24;
   --shadow: 0 10px 30px rgba(230, 57, 70, 0.08);
 }
 
@@ -277,6 +277,21 @@ body {
 .comment-time { color: #9ca3af; font-size: 10px; }
 .comment-text { font-size: 13px; color: #4b5563; }
 
+/* Rating Stars */
+.rating-container {
+  text-align: center; margin: 20px 0;
+}
+.star-rating {
+  display: flex; justify-content: center; flex-direction: row-reverse; gap: 5px;
+}
+.star-rating input { display: none; }
+.star-rating label {
+  font-size: 30px; color: #ddd; cursor: pointer; transition: color 0.2s;
+}
+.star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label {
+  color: var(--gold);
+}
+
 footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; color: var(--muted); border-top: 1px solid rgba(0,0,0,0.05); }
 
 @media (min-width: 768px) {
@@ -394,7 +409,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
         <div><label>Kategori</label>
           <select id="newType"><option value="makanan">Makanan</option><option value="minuman">Minuman</option></select>
         </div>
-        <!-- Status Kesehatan dihapus di sini -->
         <div><label>Ketersediaan</label>
           <select id="newAvail"><option value="true">Tersedia</option><option value="false">Habis</option></select>
         </div>
@@ -421,7 +435,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  // ================= PASTE KONFIGURASI ANDA DI BAWAH INI =================
+  // ================= KONFIGURASI FIREBASE =================
   const firebaseConfig = {
     apiKey: "AIzaSyBWwiJSAIezQtJDNVv3ANWECr6BM2XtNFo",
     authDomain: "methodist-smart-canteen.firebaseapp.com",
@@ -432,15 +446,20 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     appId: "1:37702426363:web:cbf58be7e8d31bda461a5e",
     measurementId: "G-L2Q5Y7B8Y6"
   };
-  // =========================================================================
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   console.log("Firebase Connected!");
 
-  // ================= KONFIGURASI =================
+  // ================= VARIABEL GLOBAL =================
   const ADMIN_PASSWORD = "01042009"; 
+  let cart = [];
+  let currentUser = null;
+  let currentFilter = "makanan";
+  let editingId = null;
+  let menuData = [];
+  let allOrders = []; // Untuk menyimpan snapshot order terbaru
 
   // ================= DATA INIT =================
   const defaultMenu = [
@@ -452,26 +471,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     { id: 6, name: "Nasi Goreng", harga: 12000, desc: "Nasi goreng telur & sayur.", img: "https://i.ibb.co.com/2Y0F6TT2/nasigoreng.jpg", type: "makanan", available: true },
   ];
 
-  let cart = [];
-  let currentUser = null;
-  let currentFilter = "makanan";
-  let editingId = null;
-  let menuData = []; 
-
   // ================= UTILS =================
-  function saveLocalMenu(data) { localStorage.setItem('smartCanteenMenu', JSON.stringify(data)); }
-  function getLocalMenu() { 
-    let data = localStorage.getItem('smartCanteenMenu');
-    if (!data) { saveLocalMenu(defaultMenu); return defaultMenu; }
-    return JSON.parse(data);
-  }
-
-  function saveLocalOrders(data) { localStorage.setItem('smartCanteenOrders', JSON.stringify(data)); }
-  function getLocalOrders() { 
-    let data = localStorage.getItem('smartCanteenOrders');
-    return data ? JSON.parse(data) : [];
-  }
-
   function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
@@ -487,13 +487,11 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   }
 
   // ================= DATA HANDLING (SYNC) =================
-
   function initMenu() {
     onValue(ref(db, 'menu'), (snapshot) => {
       const data = snapshot.val();
-      if (data) {
-        menuData = Object.values(data);
-      } else {
+      if (data) { menuData = Object.values(data); } 
+      else {
         menuData = defaultMenu;
         const json = {};
         defaultMenu.forEach(m => json[m.id] = m);
@@ -513,25 +511,21 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   function initOrders() {
     onValue(ref(db, 'orders'), (snapshot) => {
       const data = snapshot.val();
-      const orders = data ? Object.values(data) : [];
-      updateUIOrders(orders);
+      allOrders = data ? Object.values(data) : [];
+      updateUIOrders(allOrders);
     });
   }
 
   function updateUIOrders(orders) {
     updateOrderNotif(orders);
+    // Update History jika sedang dibuka
     if (document.getElementById('historySection') && !document.getElementById('historySection').classList.contains('hidden')) {
       renderUserHistory(orders);
     }
+    // Update Admin Orders jika sedang dibuka
     if (document.getElementById('adminOrdersSection') && !document.getElementById('adminOrdersSection').classList.contains('hidden')) {
       renderAdminOrders(orders);
     }
-  }
-
-  function saveOrders(orders) {
-    const json = {};
-    orders.forEach(o => json[o.id] = o);
-    set(ref(db, 'orders'), json);
   }
 
   // ================= AUTH =================
@@ -540,26 +534,12 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     const kelasGroup = document.getElementById('kelasGroup');
     const adminGroup = document.getElementById('adminPassGroup');
     const namaInput = document.getElementById('nama');
-
-    namaInput.disabled = false;
-    namaInput.value = "";
-    kelasGroup.classList.remove('hidden');
-    kelasGroup.style.opacity = "1";
-    adminGroup.classList.add('hidden');
-
-    if (status === 'Guru') {
-      kelasGroup.style.opacity = "0.5";
-      document.getElementById('kelas').placeholder = "Opsional";
-    } else if (status === 'Admin') {
-      namaInput.value = "Admin";
-      namaInput.disabled = true;
-      kelasGroup.classList.add('hidden');
-      adminGroup.classList.remove('hidden');
-    } else if (status === 'Siswa') {
-      document.getElementById('kelas').placeholder = "Kelas (Wajib Siswa)";
-    } else {
-      kelasGroup.classList.add('hidden');
-    }
+    namaInput.disabled = false; namaInput.value = "";
+    kelasGroup.classList.remove('hidden'); kelasGroup.style.opacity = "1"; adminGroup.classList.add('hidden');
+    if (status === 'Guru') { kelasGroup.style.opacity = "0.5"; document.getElementById('kelas').placeholder = "Opsional"; } 
+    else if (status === 'Admin') { namaInput.value = "Admin"; namaInput.disabled = true; kelasGroup.classList.add('hidden'); adminGroup.classList.remove('hidden'); } 
+    else if (status === 'Siswa') { document.getElementById('kelas').placeholder = "Kelas (Wajib Siswa)"; } 
+    else { kelasGroup.classList.add('hidden'); }
   }
 
   window.login = function() {
@@ -568,12 +548,9 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     const status = document.getElementById('status').value;
     const kelas = document.getElementById('kelas').value.trim();
     const adminPass = document.getElementById('adminPass').value;
-
     if (!email) { showToast('Email wajib diisi', 'warning'); return; }
     if (!email.includes('@') || !email.includes('.')) { showToast('Format email tidak valid', 'warning'); return; }
-    
     if (!nama || !status) { showToast('Lengkapi data', 'warning'); return; }
-
     if (status === 'Admin') {
       if (adminPass !== ADMIN_PASSWORD) { showToast('Password Admin salah!', 'warning'); return; }
       currentUser = { nama: "Admin", email: email, status: 'Admin', isAdmin: true };
@@ -581,7 +558,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
       if (status === 'Siswa' && !kelas) { showToast('Kelas wajib diisi', 'warning'); return; }
       currentUser = { nama, email, status, kelas: kelas || '-', isAdmin: false };
     }
-
     localStorage.setItem('smartCanteenUser', JSON.stringify(currentUser));
     showToast(`Halo ${currentUser.nama}!`, 'success');
     document.getElementById('loginPage').classList.add('hidden');
@@ -591,33 +567,25 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
 
   window.logout = function() {
     localStorage.removeItem('smartCanteenUser');
-    currentUser = null;
-    cart = [];
-    updateCart();
-    closeModal();
+    currentUser = null; cart = []; updateCart(); closeModal();
     document.getElementById('mainPage').classList.add('hidden');
     document.getElementById('loginPage').classList.remove('hidden');
-    document.getElementById('status').value = "";
-    document.getElementById('nama').value = "";
-    document.getElementById('email').value = "";
-    document.getElementById('adminPass').value = "";
+    document.getElementById('status').value = ""; document.getElementById('nama').value = "";
+    document.getElementById('email').value = ""; document.getElementById('adminPass').value = "";
     toggleLoginFields();
     showToast('Berhasil keluar', 'success');
   }
 
   function updateUI() {
     const isAdmin = currentUser && currentUser.isAdmin;
-    
     document.getElementById('userNameDisplay').textContent = currentUser.nama;
     document.getElementById('userClassDisplay').textContent = isAdmin ? 'Administrator' : (currentUser.status === 'Guru' ? 'Guru' : `Kelas ${currentUser.kelas}`);
     document.getElementById('userBadge').textContent = currentUser.status;
     document.getElementById('userBadge').classList.toggle('admin', isAdmin);
-    
     document.getElementById('btnHistory').classList.toggle('hidden', isAdmin);
     document.getElementById('btnAdminOrders').classList.toggle('hidden', !isAdmin);
     document.getElementById('btnAdmin').classList.toggle('hidden', !isAdmin);
     document.getElementById('cartIconBtn').classList.toggle('hidden', isAdmin);
-    
     initMenu();
     initOrders();
   }
@@ -626,12 +594,10 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   function renderMenu() {
     const filtered = menuData.filter(item => item.type === currentFilter);
     const grid = document.getElementById('menuGrid');
-    
     grid.innerHTML = filtered.map((item) => {
       const statusClass = item.available ? 'status-available' : 'status-unavailable';
       const statusText = item.available ? 'Tersedia' : 'Habis';
       const cardClass = item.available ? '' : 'unavailable';
-      
       return `
         <div class="card ${cardClass}" onclick="openModal(${item.id})">
           <span class="card-status ${statusClass}">${statusText}</span>
@@ -656,24 +622,21 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   window.showSection = function(section) {
     ['menuSection', 'historySection', 'adminOrdersSection', 'adminSection'].forEach(id => document.getElementById(id).classList.add('hidden'));
     ['btnMenu', 'btnHistory', 'btnAdminOrders', 'btnAdmin'].forEach(id => document.getElementById(id).classList.remove('active'));
-    
     document.getElementById('btnMenu').classList.toggle('active', section === 'menu');
     document.getElementById('btnHistory').classList.toggle('active', section === 'history');
     document.getElementById('btnAdminOrders').classList.toggle('active', section === 'adminOrders');
     document.getElementById('btnAdmin').classList.toggle('active', section === 'admin');
-
+    
+    const subNav = document.querySelector('.sub-nav');
     if(section === 'menu') {
-      document.getElementById('menuSection').classList.remove('hidden');
-      document.querySelector('.sub-nav').classList.remove('hidden');
+      document.getElementById('menuSection').classList.remove('hidden'); subNav.classList.remove('hidden');
     } else if(section === 'history') {
-      document.getElementById('historySection').classList.remove('hidden');
-      document.querySelector('.sub-nav').classList.add('hidden');
+      document.getElementById('historySection').classList.remove('hidden'); subNav.classList.add('hidden');
+      renderUserHistory(allOrders); // Render pakai data terbaru
     } else if(section === 'adminOrders') {
-      document.getElementById('adminOrdersSection').classList.remove('hidden');
-      document.querySelector('.sub-nav').classList.add('hidden');
+      document.getElementById('adminOrdersSection').classList.remove('hidden'); subNav.classList.add('hidden');
     } else if(section === 'admin') {
-      document.getElementById('adminSection').classList.remove('hidden');
-      document.querySelector('.sub-nav').classList.add('hidden');
+      document.getElementById('adminSection').classList.remove('hidden'); subNav.classList.add('hidden');
     }
   }
 
@@ -681,10 +644,8 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   window.openModal = function(id) {
     const item = menuData.find(m => m.id === id);
     if (!item) return;
-    
     const comments = JSON.parse(localStorage.getItem('smartCanteenComments') || '{}');
     const menuComments = comments[id] || [];
-    
     let commentsHtml = menuComments.length === 0 ? '<p class="no-comments">Belum ada komentar</p>' : 
       menuComments.map((c) => `
         <div class="comment-item">
@@ -699,29 +660,19 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.id = 'activeModal';
-    
     const canOrder = item.available && !currentUser.isAdmin;
-    
     modal.innerHTML = `
       <div class="modal-content">
         <button class="close" onclick="closeModal()">✕</button>
         <img src="${item.img}" class="modal-img" onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'">
         <h3>${item.name}</h3>
         <p class="modal-desc">${item.desc}</p>
-        <p style="font-size:12px; margin-bottom:8px; font-weight:600; color:${item.available ? 'var(--success)' : 'var(--danger)'}">
-          Status: ${item.available ? 'Tersedia' : 'Habis'}
-        </p>
+        <p style="font-size:12px; margin-bottom:8px; font-weight:600; color:${item.available ? 'var(--success)' : 'var(--danger)'}">Status: ${item.available ? 'Tersedia' : 'Habis'}</p>
         <p class="modal-price">Rp ${item.harga.toLocaleString()}</p>
-        
         <div class="btn-group">
-          <button class="btn-action btn-cart" onclick="addToCart(${id})" ${!canOrder ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>
-            ${!item.available ? 'Habis' : 'Tambah'}
-          </button>
-          <button class="btn-action btn-order" onclick="orderNow(${id})" ${!canOrder ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>
-            Pesan Langsung
-          </button>
+          <button class="btn-action btn-cart" onclick="addToCart(${id})" ${!canOrder ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>${!item.available ? 'Habis' : 'Tambah'}</button>
+          <button class="btn-action btn-order" onclick="orderNow(${id})" ${!canOrder ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>Pesan Langsung</button>
         </div>
-        
         ${!currentUser.isAdmin ? `
         <div class="comments-section">
           <h4>Komentar</h4>
@@ -735,8 +686,25 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     document.body.appendChild(modal);
     modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
   }
-
   window.closeModal = function() { const modal = document.getElementById('activeModal'); if(modal) modal.remove(); }
+
+  // ================= KOMENTAR (FIXED) =================
+  window.submitComment = function(id) {
+    if(!currentUser) { showToast('Silakan login', 'warning'); return; }
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    if(!text) { showToast('Komentar tidak boleh kosong', 'warning'); return; }
+    
+    const comments = JSON.parse(localStorage.getItem('smartCanteenComments') || '{}');
+    if(!comments[id]) comments[id] = [];
+    const now = new Date();
+    comments[id].push({ author: currentUser.nama, text: text, time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) });
+    localStorage.setItem('smartCanteenComments', JSON.stringify(comments));
+    input.value = '';
+    showToast('Komentar terkirim', 'success');
+    closeModal();
+    openModal(id); // Refresh modal
+  }
 
   // ================= CART & ORDER =================
   window.addToCart = function(id) {
@@ -752,7 +720,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
 
   window.openCart = function() {
     if(cart.length === 0) { showToast('Keranjang kosong', 'warning'); return; }
-    
     let total = 0;
     let itemsHtml = cart.map(item => {
       const menu = menuData.find(m => m.id === item.id);
@@ -767,7 +734,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
           </div>
         </div>`;
     }).join('');
-
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.id = 'activeModal';
@@ -797,10 +763,8 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
 
   window.placeOrder = function() {
     if(cart.length === 0) return;
-    
     let total = 0;
     let itemsDetail = [];
-    
     cart.forEach(item => {
       const menu = menuData.find(m => m.id === item.id);
       if(menu) {
@@ -809,29 +773,30 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
         itemsDetail.push({ name: menu.name, qty: item.qty, price: menu.harga });
       }
     });
-    
     const note = document.getElementById('orderNote') ? document.getElementById('orderNote').value : '';
     const now = new Date();
-    
     const newOrder = {
       id: Date.now(),
       user: currentUser.nama,
       userIdentity: getIdentityText(),
-      items: itemsDetail,
-      total: total,
-      note: note,
+      items: itemsDetail, total: total, note: note,
       status: 'pending',
       timestamp: now.getTime(),
       timeString: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      dateString: now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })
+      dateString: now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' }),
+      rating: 0
     };
     
+    // Write to Firebase
     set(ref(db, 'orders/' + newOrder.id), newOrder);
     
-    cart = [];
-    updateCart();
-    closeModal();
+    cart = []; updateCart(); closeModal();
     showToast('Pesanan berhasil dikirim!', 'success');
+    
+    // FIX: Langsung render history manual jika perlu, tapi listener onValue seharusnya sudah cukup cepat.
+    // Untuk memastikan, kita paksa update UI lokal sesaat setelah kirim
+    allOrders.push(newOrder); // Tambahkan ke array lokal
+    updateUIOrders(allOrders); // Trigger UI update
   }
 
   window.orderNow = function(id) {
@@ -856,8 +821,11 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
       let statusHtml = '';
       if(o.status === 'pending') statusHtml = '<span class="status-badge status-pending">Menunggu</span>';
       else if(o.status === 'processing') statusHtml = '<span class="status-badge status-processing">Sedang Diproses</span>';
-      else if(o.status === 'ready') statusHtml = `<span class="status-badge status-ready">Siap Diambil</span><button class="btn-status btn-complete" style="margin-left:10px;" onclick="confirmReceive(${o.id})">Pesanan Diterima</button>`;
-      else statusHtml = '<span class="status-badge status-completed">Selesai</span>';
+      else if(o.status === 'ready') statusHtml = `<span class="status-badge status-ready">Siap Diambil</span><button class="btn-status btn-complete" style="margin-left:10px;" onclick="openRatingModal(${o.id})">Pesanan Diterima</button>`;
+      else {
+        const stars = renderStars(o.rating || 0);
+        statusHtml = `<span class="status-badge status-completed">Selesai</span><div style="margin-top:5px;">${stars}</div>`;
+      }
 
       return `
       <div class="order-card ${o.status}">
@@ -872,9 +840,44 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     `}).join('');
   }
 
-  window.confirmReceive = function(id) {
-    updateOrderStatus(id, 'completed');
-    showToast('Pesanan selesai. Terima kasih!', 'success');
+  function renderStars(rating) {
+    let stars = '';
+    for(let i=1; i<=5; i++) {
+      stars += `<span style="color:${i <= rating ? 'var(--gold)' : '#ddd'}; font-size:16px;">★</span>`;
+    }
+    return stars;
+  }
+
+  // ================= RATING MODAL =================
+  window.openRatingModal = function(id) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'activeModal';
+    modal.innerHTML = `
+      <div class="modal-content" style="text-align:center;">
+        <button class="close" onclick="closeModal()">✕</button>
+        <h3 style="margin-bottom:10px;">Berikan Rating</h3>
+        <p style="color:var(--muted); margin-bottom:20px;">Bagaimana pengalaman pesanan Anda?</p>
+        <div class="rating-container">
+          <div class="star-rating">
+            <input type="radio" id="star5" name="rating" value="5" onclick="setRating(${id}, 5)"><label for="star5">★</label>
+            <input type="radio" id="star4" name="rating" value="4" onclick="setRating(${id}, 4)"><label for="star4">★</label>
+            <input type="radio" id="star3" name="rating" value="3" onclick="setRating(${id}, 3)"><label for="star3">★</label>
+            <input type="radio" id="star2" name="rating" value="2" onclick="setRating(${id}, 2)"><label for="star2">★</label>
+            <input type="radio" id="star1" name="rating" value="1" onclick="setRating(${id}, 1)"><label for="star1">★</label>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
+  }
+
+  window.setRating = function(id, rating) {
+    // Update status to completed and add rating
+    set(ref(db, 'orders/' + id), { status: 'completed', rating: rating });
+    showToast('Terima kasih atas rating Anda!', 'success');
+    closeModal();
   }
 
   // ================= ADMIN ORDER MANAGEMENT =================
@@ -882,33 +885,22 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     const orders = ordersData || [];
     const activeCount = orders.filter(o => o.status === 'pending' || o.status === 'processing').length;
     const notif = document.getElementById('orderNotif');
-    
-    if(activeCount > 0) {
-      notif.textContent = activeCount;
-      notif.classList.remove('hidden');
-    } else {
-      notif.classList.add('hidden');
-    }
+    if(activeCount > 0) { notif.textContent = activeCount; notif.classList.remove('hidden'); } 
+    else { notif.classList.add('hidden'); }
   }
 
   function renderAdminOrders(ordersData) {
     const container = document.getElementById('adminOrderList');
     const orders = ordersData || [];
     const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing').reverse();
-    
     if(activeOrders.length === 0) {
       container.innerHTML = '<div class="section-box"><p style="text-align:center; color:var(--muted);">Tidak ada pesanan aktif.</p></div>';
       return;
     }
-    
     container.innerHTML = activeOrders.map(o => {
       let actionHtml = '';
-      if(o.status === 'pending') {
-        actionHtml = `<button class="btn-status btn-process" onclick="updateOrderStatus(${o.id}, 'processing')">Proses</button>`;
-      } else if(o.status === 'processing') {
-        actionHtml = `<button class="btn-status btn-ready" onclick="updateOrderStatus(${o.id}, 'ready')">Selesai Dibuat</button>`;
-      }
-
+      if(o.status === 'pending') actionHtml = `<button class="btn-status btn-process" onclick="updateOrderStatus(${o.id}, 'processing')">Proses</button>`;
+      else if(o.status === 'processing') actionHtml = `<button class="btn-status btn-ready" onclick="updateOrderStatus(${o.id}, 'ready')">Selesai Dibuat</button>`;
       return `
       <div class="order-card ${o.status}">
         <div class="order-header">
@@ -931,6 +923,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   }
 
   window.updateOrderStatus = function(id, status) {
+    // Hanya update status, rating biarkan 0
     set(ref(db, 'orders/' + id + '/status'), status);
     showToast(`Status pesanan diupdate`, 'info');
   }
@@ -946,40 +939,33 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
           <p>Rp ${item.harga.toLocaleString()} | ${item.type} | ${item.available ? 'Tersedia' : 'Habis'}</p>
         </div>
         <div class="admin-item-actions">
-          <button class="btn-icon btn-toggle" onclick="toggleAvailability(${item.id})" title="Ubah Status">${item.available ? '✓' : '✕'}</button>
-          <button class="btn-icon btn-edit" onclick="editMenu(${item.id})" title="Edit">✎</button>
-          <button class="btn-icon btn-delete" onclick="deleteMenu(${item.id})" title="Hapus">🗑</button>
+          <button class="btn-icon btn-toggle" onclick="toggleAvailability(${item.id})">${item.available ? '✓' : '✕'}</button>
+          <button class="btn-icon btn-edit" onclick="editMenu(${item.id})">✎</button>
+          <button class="btn-icon btn-delete" onclick="deleteMenu(${item.id})">🗑</button>
         </div>
       </div>
     `).join('');
   }
 
   window.saveMenu = function() {
-    const id = editingId || Date.now(); 
+    const id = editingId || Date.now();
     const name = document.getElementById('newName').value.trim();
     const price = parseInt(document.getElementById('newPrice').value);
     const type = document.getElementById('newType').value;
-    // cat dihapus dari sini
     const img = document.getElementById('newImg').value.trim();
     const desc = document.getElementById('newDesc').value.trim();
     const available = document.getElementById('newAvail').value === 'true';
-
     if (!name || !price) { showToast('Nama & Harga wajib', 'warning'); return; }
-
     let data = [...menuData];
-    
     if (editingId) {
       const index = data.findIndex(m => m.id === editingId);
-      // cat dihapus dari update
       if (index !== -1) data[index] = { ...data[index], name, harga: price, type, img, desc, available };
-      editingId = null; 
+      editingId = null;
       document.getElementById('formTitle').textContent = "Tambah Menu Baru";
       document.querySelector('.btn-admin-save').textContent = "Simpan Menu";
     } else {
-      // cat dihapus dari insert
       data.push({ id, name, harga: price, type, img, desc, available });
     }
-
     saveMenuData(data);
     clearAdminForm();
     showToast('Menu disimpan!', 'success');
@@ -988,16 +974,13 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   window.editMenu = function(id) {
     const item = menuData.find(m => m.id === id);
     if (!item) return;
-
     document.getElementById('newName').value = item.name;
     document.getElementById('newPrice').value = item.harga;
     document.getElementById('newType').value = item.type;
-    // cat dihapus dari populate form
     document.getElementById('newImg').value = item.img;
     document.getElementById('newDesc').value = item.desc;
     document.getElementById('newAvail').value = item.available.toString();
-
-    editingId = id; 
+    editingId = id;
     document.getElementById('formTitle').textContent = "Edit Menu: " + item.name;
     document.querySelector('.btn-admin-save').textContent = "Update Menu";
     document.querySelector('.admin-panel').scrollIntoView({ behavior: 'smooth' });
@@ -1034,34 +1017,28 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.id = 'activeModal';
-    
     modal.innerHTML = `
       <div class="modal-content" style="max-width:350px;">
         <button class="close" onclick="closeModal()">✕</button>
         <h3 style="text-align:center; margin-bottom:20px;">Profil</h3>
-        
         <div class="input-group">
           <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">Email</label>
           <input type="text" value="${currentUser.email}" disabled style="background:#f3f4f6; color:#9ca3af;">
         </div>
-        
         <div class="input-group">
           <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">Nama</label>
           <input type="text" id="editNama" value="${currentUser.nama}" ${currentUser.isAdmin ? 'disabled' : ''}>
         </div>
-        
         <div class="input-group">
           <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">Status</label>
           <input type="text" value="${currentUser.status}" disabled style="background:#f3f4f6; color:#9ca3af;">
         </div>
-        
         ${isSiswa ? `
         <div class="input-group">
           <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">Kelas</label>
           <input type="text" id="editKelas" value="${currentUser.kelas}">
         </div>
         ` : ''}
-        
         ${!currentUser.isAdmin ? `<button class="btn-primary" style="margin-top:10px;" onclick="saveProfileChanges()">Simpan</button>` : ''}
         <button class="btn-secondary" onclick="logout()">Keluar</button>
       </div>
@@ -1072,19 +1049,15 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
 
   window.saveProfileChanges = function() {
     if(currentUser.isAdmin) return;
-    
     const nama = document.getElementById('editNama').value.trim();
     const kelasInput = document.getElementById('editKelas');
     const kelas = kelasInput ? kelasInput.value.trim() : '-';
-
     if (!nama) { showToast('Nama tidak boleh kosong', 'warning'); return; }
     if (currentUser.status === 'Siswa' && !kelas) { showToast('Kelas tidak boleh kosong', 'warning'); return; }
-
     currentUser.nama = nama;
     currentUser.kelas = kelas;
     localStorage.setItem('smartCanteenUser', JSON.stringify(currentUser));
-    updateUI(); 
-    closeModal();
+    updateUI(); closeModal();
     showToast('Profil diperbarui', 'success');
   }
 
