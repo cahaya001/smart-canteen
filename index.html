@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Canteen - Methodist Lubuk Pakam</title>
-<!-- Font Gendut/Imut: Fredoka One -->
+<!-- Font Gendut: Fredoka One -->
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 
@@ -17,7 +17,6 @@
   --success: #2ed573; --danger: #ff4757; --info: #45aaf2;
   --card: rgba(255, 255, 255, 0.95); --border: rgba(255, 255, 255, 0.6);
   --shadow: 0 10px 30px rgba(255, 71, 87, 0.15);
-  /* Warna Khusus Font Judul */
   --title-fill: #ffa502;      /* Orange Terang */
   --title-stroke: #ffffff;    /* Putih */
   --title-shadow: #d35400;    /* Orange Tua */
@@ -49,26 +48,23 @@ body {
 .container { max-width: 960px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
 .hidden { display: none !important; }
 
-/* ================= FONT JUDUL GENDUT (IMUT) ================= */
+/* ================= FONT JUDUL GENDUT ================= */
 .text-title-style {
   font-family: 'Fredoka One', cursive;
-  /* 1. Warna Dalam: Orange */
   color: var(--title-fill);
-  /* 2. Luaran Putih (Stroke) */
-  -webkit-text-stroke: 3px var(--title-stroke);
-  paint-order: stroke fill; /* Agar stroke di belakang fill */
-  /* 3. Lapisan Orange Tua (Shadow) */
-  text-shadow: 
-    4px 4px 0px var(--title-shadow);
+  -webkit-text-stroke: 2.5px var(--title-stroke);
+  paint-order: stroke fill;
+  text-shadow: 3px 3px 0px var(--title-shadow);
   letter-spacing: 1px;
 }
 
 /* Toast */
 .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-.toast { background: white; padding: 16px 24px; border-radius: 50px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: var(--fg); animation: slideDown 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+.toast { background: white; padding: 16px 24px; border-radius: 50px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: var(--fg); animation: slideDown 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); border-left: 5px solid var(--success); min-width: 250px; }
 .toast-success { background: var(--success); color: white; }
 .toast-warning { background: var(--secondary); color: white; }
 .toast-error { background: var(--danger); color: white; }
+.toast-info { background: var(--info); color: white; }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Auth Pages */
@@ -81,16 +77,7 @@ body {
 @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
 .auth-header { text-align: center; padding: 40px 20px 20px; }
-/* Judul Login */
-.auth-header h1 { 
-  font-size: 36px; margin-bottom: 5px; 
-  /* Panggil Style Font Gendut */
-  font-family: 'Fredoka One', cursive;
-  color: var(--title-fill);
-  -webkit-text-stroke: 2px var(--title-stroke);
-  paint-order: stroke fill;
-  text-shadow: 3px 3px 0px var(--title-shadow);
-}
+.auth-header h1 { font-size: 36px; margin-bottom: 5px; font-family: 'Fredoka One', cursive; color: var(--title-fill); -webkit-text-stroke: 2px var(--title-stroke); paint-order: stroke fill; text-shadow: 3px 3px 0px var(--title-shadow); }
 .auth-header p { color: var(--muted); font-size: 14px; font-weight: 600; }
 
 .auth-tabs { display: flex; background: rgba(0,0,0,0.03); margin: 0 20px; border-radius: 20px; padding: 4px; }
@@ -109,12 +96,7 @@ body {
 .btn-admin-trigger:hover { border-color: var(--primary); color: var(--primary); background: rgba(255, 71, 87, 0.05); }
 
 /* Navigation Bar */
-.nav-bar {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
-  padding: 8px 12px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-  display: flex; gap: 5px; z-index: 1000; border: 1px solid rgba(255,255,255,0.8);
-}
+.nav-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); padding: 8px 12px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; gap: 5px; z-index: 1000; border: 1px solid rgba(255,255,255,0.8); }
 .nav-item { display: flex; flex-direction: column; align-items: center; padding: 8px 15px; border-radius: 20px; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; background: transparent; color: var(--muted); position: relative; }
 .nav-item.active { background: linear-gradient(135deg, var(--primary), var(--tertiary)); color: white; box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3); }
 .nav-item svg { width: 22px; height: 22px; margin-bottom: 2px; }
@@ -123,16 +105,7 @@ body {
 
 /* App Header */
 .app-header { text-align: center; margin-bottom: 25px; padding-top: 20px; }
-/* Judul Utama di App */
-.app-title { 
-  font-size: 32px; letter-spacing: 1px; margin-bottom: 0;
-  /* Panggil Style Font Gendut */
-  font-family: 'Fredoka One', cursive;
-  color: var(--title-fill);
-  -webkit-text-stroke: 2.5px var(--title-stroke);
-  paint-order: stroke fill;
-  text-shadow: 3px 3px 0px var(--title-shadow);
-}
+.app-title { font-size: 32px; letter-spacing: 1px; margin-bottom: 0; font-family: 'Fredoka One', cursive; color: var(--title-fill); -webkit-text-stroke: 2.5px var(--title-stroke); paint-order: stroke fill; text-shadow: 3px 3px 0px var(--title-shadow); }
 .app-subtitle { color: var(--muted); font-size: 14px; font-weight: 600; margin-top: 5px; }
 
 .profile-bar { background: rgba(255, 255, 255, 0.9); padding: 15px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.5); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
@@ -148,7 +121,16 @@ body {
 .menu-img { width: 100%; height: 120px; object-fit: cover; }
 .menu-body { padding: 12px; text-align: center; }
 .menu-name { font-size: 14px; font-weight: 700; color: var(--fg); margin-bottom: 4px; }
-.menu-price { font-size: 14px; font-weight: 800; background: linear-gradient(45deg, var(--primary), var(--tertiary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.menu-price { font-size: 14px; font-weight: 800; background: linear-gradient(45deg, var(--primary), var(--tertiary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 2px; }
+/* Rating Styles - Lebih Nyata */
+.menu-rating { 
+  font-size: 12px; 
+  color: var(--muted); 
+  margin-top: 4px; 
+  display: flex; justify-content: center; align-items: center; gap: 4px;
+}
+.menu-rating .star-icon { color: var(--secondary); font-size: 14px; } /* Bintang Orange */
+.menu-rating .score { font-weight: 700; color: var(--fg); }
 .menu-badge { position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; color: white; }
 .badge-available { background: var(--success); box-shadow: 0 0 10px rgba(46, 213, 115, 0.4); }
 .badge-unavailable { background: #718093; }
@@ -215,7 +197,6 @@ footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px
 <div id="loginPage">
   <div class="auth-card">
     <div class="auth-header">
-      <!-- Font Gendut Style Applied Here -->
       <h1>Smart Canteen</h1>
       <p>Kantin Methodist Lubuk Pakam</p>
     </div>
@@ -250,7 +231,6 @@ footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px
   </button>
 
   <div class="app-header">
-    <!-- Font Gendut Style Applied Here -->
     <h1 class="app-title">Smart Canteen</h1>
     <p class="app-subtitle">Kantin Methodist Lubuk Pakam</p>
   </div>
@@ -306,7 +286,7 @@ let currentUser = null; let cart = []; let menuData = []; let allOrders = []; le
 window.showToast = function(msg, type = 'success') {
   const el = document.createElement('div'); el.className = `toast toast-${type}`; el.textContent = msg;
   document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), 4000);
 }
 
 window.showAuthForm = function(type) {
@@ -372,16 +352,94 @@ function initMenu() {
     else { menuData = Object.values(snap.val()); } renderMenu();
   });
 }
-function renderMenu() { const g = document.getElementById('menuGrid'); const filtered = menuData.filter(m => m.type === filter); g.innerHTML = filtered.map(m => `<div class="menu-card" onclick="openDetail(${m.id})">${!m.available ? `<div class="menu-badge badge-unavailable">Habis</div>` : ''}<img src="${m.img}" class="menu-img" onerror="this.src='https://via.placeholder.com/150'"><div class="menu-body"><div class="menu-name">${m.name}</div><div class="menu-price">Rp ${m.harga.toLocaleString()}</div></div></div>`).join(''); }
+
+// ================= RENDER MENU DENGAN RATING =================
+function renderMenu() { 
+  const g = document.getElementById('menuGrid'); 
+  const filtered = menuData.filter(m => m.type === filter); 
+  g.innerHTML = filtered.map(m => {
+    // Hitung rating
+    let ratingDisplay = '';
+    if(m.ratingCount > 0) {
+      const avg = (m.ratingSum / m.ratingCount).toFixed(1);
+      ratingDisplay = `<div class="menu-rating"><span class="star-icon">★</span><span class="score">${avg}</span><span style="font-size:10px; color:#999;">(${m.ratingCount})</span></div>`;
+    }
+    
+    return `<div class="menu-card" onclick="openDetail(${m.id})">${!m.available ? `<div class="menu-badge badge-unavailable">Habis</div>` : ''}<img src="${m.img}" class="menu-img" onerror="this.src='https://via.placeholder.com/150'"><div class="menu-body"><div class="menu-name">${m.name}</div>${ratingDisplay}<div class="menu-price">Rp ${m.harga.toLocaleString()}</div></div></div>`;
+  }).join(''); 
+}
+
 window.openDetail = function(id) { const m = menuData.find(x => x.id === id); if(!m) return; const canOrder = m.available && !currentUser.isAdmin; const html = `<div style="position:relative;"><img src="${m.img}" style="width:100%; height:150px; object-fit:cover; border-radius:16px; margin-bottom:15px;"><h2 style="font-size:20px;">${m.name}</h2><p style="color:var(--muted); font-size:14px; margin:5px 0 15px;">${m.desc}</p><div style="font-size:18px; font-weight:800; margin-bottom:15px; background:linear-gradient(45deg, var(--primary), var(--tertiary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Rp ${m.harga.toLocaleString()}</div><div style="display:flex; gap:10px;"><button onclick="addToCart(${id})" class="btn-main" style="flex:1; padding:12px;" ${!canOrder ? 'disabled style="opacity:0.5"' : ''}>Tambah</button><button onclick="orderNow(${id})" class="btn-main" style="flex:1; padding:12px; background:linear-gradient(135deg, var(--secondary), var(--tertiary));" ${!canOrder ? 'disabled style="opacity:0.5"' : ''}>Pesan</button></div></div>`; openModal(html); }
 
-function initOrders() { onValue(ref(db, 'orders'), snap => { allOrders = snap.exists() ? Object.values(snap.val()) : []; updateNotifCount(); }); }
-function updateNotifCount() { if(currentUser.isAdmin) { const count = allOrders.filter(o => ['pending', 'processing', 'ready'].includes(o.status)).length; const el = document.getElementById('navNotifAdmin'); if(count > 0) { el.textContent = count; el.classList.remove('hidden'); } else el.classList.add('hidden'); } else { const count = allOrders.filter(o => o.user === currentUser.nama && !['completed', 'cancelled'].includes(o.status)).length; const el = document.getElementById('navNotifUser'); if(count > 0) { el.textContent = count; el.classList.remove('hidden'); } else el.classList.add('hidden'); } }
+// ================= REALTIME ORDERS FIX =================
+function initOrders() {
+  const ordersRef = ref(db, 'orders');
+  
+  onValue(ordersRef, (snapshot) => {
+    const data = snapshot.val();
+    const newOrders = data ? Object.values(data) : [];
+    
+    // LOGIC: Deteksi perubahan untuk notifikasi user
+    if (currentUser && !currentUser.isAdmin && allOrders.length > 0) {
+       // Cek order milik user yang statusnya berubah
+       const myOldOrders = allOrders.filter(o => o.user === currentUser.nama);
+       const myNewOrders = newOrders.filter(o => o.user === currentUser.nama);
+       
+       myNewOrders.forEach(newO => {
+          const oldO = myOldOrders.find(o => o.id === newO.id);
+          if (oldO && oldO.status !== newO.status) {
+             // Status berubah, kirim notif
+             let msg = '';
+             if (newO.status === 'processing') msg = 'Pesanan diterima, sedang diproses...';
+             else if (newO.status === 'ready') msg = 'Pesanan Selesai! Silakan ambil.';
+             else if (newO.status === 'completed') msg = 'Pesanan telah diambil.';
+             else if (newO.status === 'cancelled') msg = 'Pesanan dibatalkan.';
+             
+             if (msg) showToast(msg, 'info');
+          }
+       });
+    }
+
+    // Update global state
+    allOrders = newOrders;
+    
+    // Refresh UI Active Orders jika sedang dilihat
+    if (!document.getElementById('activeOrdersSection').classList.contains('hidden')) {
+       renderActiveOrders();
+    }
+    
+    // Refresh UI History jika sedang dilihat
+    if (!document.getElementById('historySection').classList.contains('hidden')) {
+       renderHistory();
+    }
+    
+    // Refresh UI Admin jika sedang dilihat
+    if (!document.getElementById('adminOrdersContent').classList.contains('hidden')) {
+       renderAdminOrders();
+    }
+
+    // Update badge notif
+    updateNotifCount();
+  });
+}
+
+function updateNotifCount() { 
+  if(currentUser.isAdmin) { 
+    const count = allOrders.filter(o => ['pending', 'processing', 'ready'].includes(o.status)).length; 
+    const el = document.getElementById('navNotifAdmin'); 
+    if(count > 0) { el.textContent = count; el.classList.remove('hidden'); } else el.classList.add('hidden'); 
+  } else { 
+    const count = allOrders.filter(o => o.user === currentUser.nama && !['completed', 'cancelled'].includes(o.status)).length; 
+    const el = document.getElementById('navNotifUser'); 
+    if(count > 0) { el.textContent = count; el.classList.remove('hidden'); } else el.classList.add('hidden'); 
+  } 
+}
+
 window.addToCart = function(id) { const m = menuData.find(x => x.id === id); if(!m || !m.available) return; const exist = cart.find(c => c.id === id); if(exist) exist.qty++; else cart.push({id, qty:1, name:m.name, price:m.harga}); updateCartBadge(); showToast('Ditambahkan', 'success'); closeModal(); }
 function updateCartBadge() { const count = cart.reduce((a,b) => a+b.qty, 0); const el = document.getElementById('cartCount'); if(count > 0) { el.textContent = count; el.classList.remove('hidden'); } else el.classList.add('hidden'); }
 window.openCart = function() { if(cart.length === 0) return showToast('Keranjang kosong', 'warning'); let total = 0; const items = cart.map(c => { total += c.price * c.qty; return `<div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;"><span>${c.name} x${c.qty}</span><span>Rp ${(c.price*c.qty).toLocaleString()}</span></div>`; }).join(''); const html = `<h2 style="margin-bottom:15px;">Keranjang</h2>${items}<div style="text-align:right; font-weight:800; margin:15px 0; font-size:18px; background:linear-gradient(45deg, var(--primary), var(--tertiary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Total: Rp ${total.toLocaleString()}</div><input type="text" id="orderNote" placeholder="Catatan (opsional)" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px;"><button onclick="placeOrder()" class="btn-main">Pesan Sekarang</button>`; openModal(html); }
-window.orderNow = function(id) { const m = menuData.find(x => x.id === id); if(!m) return; cart = [{id, qty:1, name:m.name, price:m.harga}]; openCart(); }
-window.placeOrder = function() { if(cart.length === 0) return; let total = 0; const items = cart.map(c => { total += c.price * c.qty; return {menuId: c.id, name: c.name, qty: c.qty, price: c.price}; }); const note = document.getElementById('orderNote').value; const order = { id: Date.now(), user: currentUser.nama, userIdentity: `${currentUser.nama} (${currentUser.status}${currentUser.status==='Siswa' ? ' - '+currentUser.kelas : ''})`, items, total, note, status: 'pending', rating: 0, time: new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}), date: new Date().toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'short'}) }; set(ref(db, 'orders/' + order.id), order); cart = []; updateCartBadge(); closeModal(); showToast('Pesanan terkirim!', 'success'); }
+window.orderNow = function(id) { const m = menuData.find(x => x.id === id); if(!m) return; cart = [{id, qty:1, name:m.name, price:m.price}]; openCart(); }
+window.placeOrder = function() { if(cart.length === 0) return; let total = 0; const items = cart.map(c => { total += c.price * c.qty; return {menuId: c.id, name: c.name, qty: c.qty, price: c.price}; }); const note = document.getElementById('orderNote').value; const order = { id: Date.now(), user: currentUser.nama, userIdentity: `${currentUser.nama} (${currentUser.status}${currentUser.status==='Siswa' ? ' - '+currentUser.kelas : ''})`, items, total, note, status: 'pending', rating: 0, time: new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}), date: new Date().toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'short'}) }; set(ref(db, 'orders/' + order.id), order); cart = []; updateCartBadge(); closeModal(); showToast('Pesanan berhasil dikirim!', 'success'); }
 
 function renderActiveOrders() { const list = document.getElementById('activeOrdersList'); const mine = allOrders.filter(o => o.user === currentUser.nama && !['completed', 'cancelled'].includes(o.status)).reverse(); if(mine.length === 0) return list.innerHTML = '<p style="text-align:center; color:var(--muted); padding:40px 20px; background:white; border-radius:20px;">Tidak ada pesanan aktif.</p>'; list.innerHTML = mine.map(o => `<div class="order-card status-${o.status}"><div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-weight:700;">${o.date} - ${o.time}</span><span class="status-chip chip-${o.status}">${o.status}</span></div><div style="font-size:13px; color:#555;">${o.items.map(i => i.name+' x'+i.qty).join(', ')}</div>${o.note ? `<div style="font-size:12px; color:var(--secondary); font-style:italic; margin-top:5px;">Note: ${o.note}</div>` : ''}<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;"><span style="font-weight:700; background:linear-gradient(45deg, var(--primary), var(--tertiary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Rp ${o.total.toLocaleString()}</span><div>${o.status === 'pending' ? `<button class="btn-action-sm btn-cancel" onclick="cancelOrder(${o.id})">Batalkan</button>` : ''}${o.status === 'ready' ? `<button class="btn-action-sm btn-accept" onclick="acceptOrder(${o.id})">Terima</button>` : ''}</div></div></div>`).join(''); }
 function renderHistory() { const list = document.getElementById('historyList'); const mine = allOrders.filter(o => o.user === currentUser.nama && ['completed', 'cancelled'].includes(o.status)).reverse(); if(mine.length === 0) return list.innerHTML = '<p style="text-align:center; color:var(--muted); padding:40px 20px; background:white; border-radius:20px;">Belum ada riwayat.</p>'; list.innerHTML = mine.map(o => `<div class="order-card status-${o.status}"><div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-weight:700;">${o.date} - ${o.time}</span><span class="status-chip chip-${o.status}">${o.status}</span></div><div style="font-size:13px; color:#555;">${o.items.map(i => i.name+' x'+i.qty).join(', ')}</div><div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;"><span style="font-weight:700; color:#888;">Rp ${o.total.toLocaleString()}</span>${o.rating ? `<div style="color:var(--secondary);">★ ${o.rating}</div>` : ''}</div></div>`).join(''); }
