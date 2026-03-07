@@ -166,9 +166,7 @@ body {
 .status-unavailable { background: var(--danger); }
 
 /* Rating Display on Card */
-.card-rating {
-  display: flex; align-items: center; gap: 4px; margin-top: 5px;
-}
+.card-rating { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
 .card-rating .stars { color: var(--gold); font-size: 14px; letter-spacing: 1px; }
 .card-rating .count { font-size: 11px; color: var(--muted); }
 
@@ -213,9 +211,7 @@ body {
 .modal-price { font-size: 24px; font-weight: 700; color: var(--accent); margin-bottom: 16px; }
 
 /* Rating in Modal */
-.modal-rating-display {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 15px;
-}
+.modal-rating-display { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
 .modal-rating-display .stars { color: var(--gold); font-size: 18px; }
 .modal-rating-display .text { font-size: 14px; font-weight: 600; color: var(--fg); }
 .modal-rating-display .count { font-size: 12px; color: var(--muted); }
@@ -259,6 +255,7 @@ body {
 .order-card.processing { border-left-color: var(--warning); }
 .order-card.ready { border-left-color: var(--success); }
 .order-card.completed { border-left-color: #d1d5db; opacity: 0.6; }
+.order-card.cancelled { border-left-color: var(--danger); opacity: 0.6; }
 
 .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px; }
 .order-user { font-weight: 700; color: var(--fg); }
@@ -273,6 +270,7 @@ body {
 .status-processing { background: #fef3c7; color: #92400e; }
 .status-ready { background: #d1fae5; color: #065f46; }
 .status-completed { background: #e5e7eb; color: #4b5563; }
+.status-cancelled { background: #fee2e2; color: #991b1b; }
 
 .btn-status {
   padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 600;
@@ -281,21 +279,14 @@ body {
 .btn-process { background: var(--warning); color: white; }
 .btn-ready { background: var(--success); color: white; }
 .btn-complete { background: var(--info); color: white; }
+.btn-cancel { background: var(--danger); color: white; font-size: 11px; padding: 6px 12px; }
 
 /* Rating Input Modal */
-.rating-container {
-  text-align: center; margin: 20px 0;
-}
-.star-rating {
-  display: flex; justify-content: center; flex-direction: row-reverse; gap: 5px;
-}
+.rating-container { text-align: center; margin: 20px 0; }
+.star-rating { display: flex; justify-content: center; flex-direction: row-reverse; gap: 5px; }
 .star-rating input { display: none; }
-.star-rating label {
-  font-size: 30px; color: #ddd; cursor: pointer; transition: color 0.2s;
-}
-.star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label {
-  color: var(--gold);
-}
+.star-rating label { font-size: 30px; color: #ddd; cursor: pointer; transition: color 0.2s; }
+.star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: var(--gold); }
 
 footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; color: var(--muted); border-top: 1px solid rgba(0,0,0,0.05); }
 
@@ -519,9 +510,11 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   function saveMenuData(data) { const json = {}; data.forEach(m => json[m.id] = m); set(ref(db, 'menu'), json); }
 
   function initOrders() {
+    // Listener untuk perubahan data pesanan (Realtime Sync)
     onValue(ref(db, 'orders'), (snapshot) => {
       const data = snapshot.val();
       allOrders = data ? Object.values(data) : [];
+      console.log("Data masuk:", allOrders); // Debug log
       updateUIOrders(allOrders);
     });
   }
@@ -532,35 +525,25 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     if (document.getElementById('adminOrdersSection') && !document.getElementById('adminOrdersSection').classList.contains('hidden')) renderAdminOrders(orders);
   }
 
-  // ================= AUTH (FIXED) =================
+  // ================= AUTH =================
   window.toggleLoginFields = function() {
     const status = document.getElementById('status').value;
     const kelasGroup = document.getElementById('kelasGroup');
     const adminGroup = document.getElementById('adminPassGroup');
     const namaInput = document.getElementById('nama');
-
-    // Reset state default dulu
     namaInput.disabled = false;
-    // BUG FIX: Jangan hapus nilai nama di sini! Biarkan user mengetik.
-    // namaInput.value = ""; <--- DIHAPUS
-    
     kelasGroup.classList.remove('hidden');
     kelasGroup.style.opacity = "1";
     adminGroup.classList.add('hidden');
 
     if (status === 'Guru') {
-      kelasGroup.style.opacity = "0.5";
-      document.getElementById('kelas').placeholder = "Opsional";
+      kelasGroup.style.opacity = "0.5"; document.getElementById('kelas').placeholder = "Opsional";
     } else if (status === 'Admin') {
-      // Khusus Admin, baru kita set nilai dan disable
-      namaInput.value = "Admin";
-      namaInput.disabled = true;
-      kelasGroup.classList.add('hidden');
-      adminGroup.classList.remove('hidden');
+      namaInput.value = "Admin"; namaInput.disabled = true;
+      kelasGroup.classList.add('hidden'); adminGroup.classList.remove('hidden');
     } else if (status === 'Siswa') {
       document.getElementById('kelas').placeholder = "Kelas (Wajib Siswa)";
     } else {
-      // Jika status dipilih tapi kosong (kembali ke default)
       kelasGroup.classList.add('hidden');
     }
   }
@@ -571,7 +554,6 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     const status = document.getElementById('status').value;
     const kelas = document.getElementById('kelas').value.trim();
     const adminPass = document.getElementById('adminPass').value;
-    
     if (!email || !nama || !status) { showToast('Lengkapi semua data!', 'warning'); return; }
     if (!email.includes('@') || !email.includes('.')) { showToast('Format email tidak valid', 'warning'); return; }
     
@@ -595,12 +577,9 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     currentUser = null; cart = []; updateCart(); closeModal();
     document.getElementById('mainPage').classList.add('hidden');
     document.getElementById('loginPage').classList.remove('hidden');
-    // Reset form
-    document.getElementById('status').value = ""; 
-    document.getElementById('nama').value = "";
-    document.getElementById('email').value = ""; 
-    document.getElementById('adminPass').value = "";
-    toggleLoginFields(); // Reset tampilan
+    document.getElementById('status').value = ""; document.getElementById('nama').value = "";
+    document.getElementById('email').value = ""; document.getElementById('adminPass').value = "";
+    toggleLoginFields();
     showToast('Berhasil keluar', 'success');
   }
 
@@ -666,6 +645,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
       renderUserHistory(allOrders);
     } else if(section === 'adminOrders') {
       document.getElementById('adminOrdersSection').classList.remove('hidden'); subNav.classList.add('hidden');
+      renderAdminOrders(allOrders);
     } else if(section === 'admin') {
       document.getElementById('adminSection').classList.remove('hidden'); subNav.classList.add('hidden');
     }
@@ -764,11 +744,14 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
       dateString: now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' }),
       rating: 0
     };
-    set(ref(db, 'orders/' + newOrder.id), newOrder);
-    cart = []; updateCart(); closeModal();
-    showToast('Pesanan berhasil dikirim!', 'success');
-    allOrders.push(newOrder);
-    updateUIOrders(allOrders);
+    
+    // Tulis ke Firebase
+    set(ref(db, 'orders/' + newOrder.id), newOrder).then(() => {
+        console.log("Pesanan sukses ditulis ke DB");
+        cart = []; updateCart(); closeModal();
+        showToast('Pesanan berhasil dikirim!', 'success');
+        // Tidak perlu manual push ke allOrders, onValue akan otomatis trigger
+    }).catch(err => console.error(err));
   }
 
   window.orderNow = function(id) {
@@ -784,10 +767,26 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     if(userOrders.length === 0) { container.innerHTML = '<div class="section-box"><p style="text-align:center; color:var(--muted);">Belum ada riwayat pesanan.</p></div>'; return; }
     container.innerHTML = userOrders.map(o => {
       let statusHtml = '';
-      if(o.status === 'pending') statusHtml = '<span class="status-badge status-pending">Menunggu</span>';
-      else if(o.status === 'processing') statusHtml = '<span class="status-badge status-processing">Sedang Diproses</span>';
-      else if(o.status === 'ready') statusHtml = `<span class="status-badge status-ready">Siap Diambil</span><button class="btn-status btn-complete" style="margin-left:10px;" onclick="openRatingModal(${o.id})">Terima</button>`;
-      else { const stars = renderStars(o.rating || 0); statusHtml = `<span class="status-badge status-completed">Selesai</span><div style="margin-top:5px;">${stars}</div>`; }
+      
+      if(o.status === 'pending') {
+        statusHtml = `
+          <span class="status-badge status-pending">Menunggu</span>
+          <button class="btn-status btn-cancel" style="margin-left:10px;" onclick="cancelOrder(${o.id})">Batalkan</button>`;
+      } 
+      else if(o.status === 'cancelled') {
+          statusHtml = '<span class="status-badge status-cancelled">Dibatalkan</span>';
+      }
+      else if(o.status === 'processing') {
+        statusHtml = '<span class="status-badge status-processing">Sedang Diproses</span>';
+      }
+      else if(o.status === 'ready') {
+        statusHtml = `<span class="status-badge status-ready">Siap Diambil</span><button class="btn-status btn-complete" style="margin-left:10px;" onclick="openRatingModal(${o.id})">Terima</button>`;
+      }
+      else {
+        const stars = renderStars(o.rating || 0);
+        statusHtml = `<span class="status-badge status-completed">Selesai</span><div style="margin-top:5px;">${stars}</div>`;
+      }
+
       return `
       <div class="order-card ${o.status}">
         <div class="order-header">
@@ -799,6 +798,13 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
         <div class="order-total">Total: Rp ${o.total.toLocaleString()}</div>
       </div>`;
     }).join('');
+  }
+  
+  // FUNGSI BATALKAN PESANAN
+  window.cancelOrder = function(id) {
+     if(!confirm('Yakin ingin membatalkan pesanan ini?')) return;
+     set(ref(db, 'orders/' + id + '/status'), 'cancelled');
+     showToast('Pesanan dibatalkan', 'warning');
   }
 
   function renderStars(rating) { let stars = ''; for(let i=1; i<=5; i++) { stars += `<span style="color:${i <= rating ? 'var(--gold)' : '#ddd'}; font-size:16px;">★</span>`; } return stars; }
@@ -847,7 +853,8 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   // ================= ADMIN =================
   function updateOrderNotif(ordersData) {
     const orders = ordersData || [];
-    const activeCount = orders.filter(o => o.status === 'pending' || o.status === 'processing').length;
+    // Notif hitung pesanan yang pending saja
+    const activeCount = orders.filter(o => o.status === 'pending').length;
     const notif = document.getElementById('orderNotif');
     if(activeCount > 0) { notif.textContent = activeCount; notif.classList.remove('hidden'); } else { notif.classList.add('hidden'); }
   }
@@ -855,6 +862,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
   function renderAdminOrders(ordersData) {
     const container = document.getElementById('adminOrderList');
     const orders = ordersData || [];
+    // Tampilkan pending dan processing
     const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing').reverse();
     if(activeOrders.length === 0) { container.innerHTML = '<div class="section-box"><p style="text-align:center; color:var(--muted);">Tidak ada pesanan aktif.</p></div>'; return; }
     container.innerHTML = activeOrders.map(o => {
@@ -988,7 +996,7 @@ footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 13px; c
     document.getElementById('mainPage').classList.remove('hidden');
     updateUI();
   }
-  toggleLoginFields(); // Run once on load
+  toggleLoginFields(); 
 </script>
 </body>
 </html>
