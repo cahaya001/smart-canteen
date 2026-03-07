@@ -178,6 +178,10 @@ body {
 .rating-stars label { font-size: 30px; color: #ddd; cursor: pointer; transition: all 0.2s; }
 .rating-stars label:hover, .rating-stars label:hover ~ label, .rating-stars input:checked ~ label { color: var(--secondary); text-shadow: 0 0 10px var(--secondary-glow); }
 
+/* Admin Menu Item Style (New) */
+.admin-menu-item { display: flex; align-items: center; justify-content: space-between; background: white; padding: 15px; border-radius: 16px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: opacity 0.3s; }
+.admin-menu-item.unavailable-dim { opacity: 0.5; background: #f8f8f8; filter: grayscale(100%); }
+
 footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; }
 
 @media (min-width: 768px) { .grid { grid-template-columns: repeat(4, 1fr); } }
@@ -279,6 +283,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let currentUser = null; let cart = []; let menuData = []; let allOrders = []; let filter = 'makanan';
+let editingMenuId = null; // Variable untuk state edit
 
 window.showToast = function(msg, type = 'success') {
   const el = document.createElement('div'); el.className = `toast toast-${type}`; el.textContent = msg;
@@ -355,19 +360,14 @@ function renderMenu() {
   const g = document.getElementById('menuGrid'); 
   const filtered = menuData.filter(m => m.type === filter); 
   g.innerHTML = filtered.map(m => {
-    // Safe calculation for average
     const sum = m.ratingSum || 0;
     const count = m.ratingCount || 0;
     const avg = count > 0 ? (sum / count) : 0;
     
-    // Generate Stars HTML
     let starsHtml = '';
     if (count > 0) {
       starsHtml = '<div class="menu-rating">';
-      for(let i=1; i<=5; i++) {
-        // Fill star if i <= average rounded, else empty star
-        starsHtml += `<span class="${i <= Math.round(avg) ? 'star-filled' : 'star-empty'}">★</span>`;
-      }
+      for(let i=1; i<=5; i++) { starsHtml += `<span class="${i <= Math.round(avg) ? 'star-filled' : 'star-empty'}">★</span>`; }
       starsHtml += `<span class="rating-text">(${avg.toFixed(1)})</span></div>`;
     }
 
@@ -386,23 +386,15 @@ function renderMenu() {
 }
 
 window.openDetail = function(id) { 
-  const m = menuData.find(x => x.id === id); 
-  if(!m) return; 
+  const m = menuData.find(x => x.id === id); if(!m) return; 
   const canOrder = m.available && !currentUser.isAdmin; 
-  
-  // Calculate Rating for Modal
-  const sum = m.ratingSum || 0;
-  const count = m.ratingCount || 0;
-  const avg = count > 0 ? (sum / count) : 0;
+  const sum = m.ratingSum || 0; const count = m.ratingCount || 0; const avg = count > 0 ? (sum / count) : 0;
   let ratingHtml = '';
   if (count > 0) {
      ratingHtml = '<div style="display:flex; justify-content:center; gap:2px; margin-bottom:10px;">';
-     for(let i=1; i<=5; i++) {
-       ratingHtml += `<span style="color:${i <= Math.round(avg) ? 'var(--secondary)' : '#ccc'}; font-size:18px;">★</span>`;
-     }
+     for(let i=1; i<=5; i++) { ratingHtml += `<span style="color:${i <= Math.round(avg) ? 'var(--secondary)' : '#ccc'}; font-size:18px;">★</span>`; }
      ratingHtml += `<span style="margin-left:5px; color:var(--muted); font-size:12px; font-weight:700;">${avg.toFixed(1)} / 5</span></div>`;
   }
-
   const html = `
     <div style="position:relative;">
       <img src="${m.img}" style="width:100%; height:150px; object-fit:cover; border-radius:16px; margin-bottom:15px;">
@@ -424,7 +416,6 @@ function initOrders() {
   onValue(ordersRef, (snapshot) => {
     const data = snapshot.val();
     const newOrders = data ? Object.values(data) : [];
-    
     if (currentUser && !currentUser.isAdmin && allOrders.length > 0) {
        const myOldOrders = allOrders.filter(o => o.user === currentUser.nama);
        const myNewOrders = newOrders.filter(o => o.user === currentUser.nama);
@@ -441,8 +432,6 @@ function initOrders() {
        });
     }
     allOrders = newOrders;
-    
-    // Refresh UI
     if (!document.getElementById('activeOrdersSection').classList.contains('hidden')) renderActiveOrders();
     if (!document.getElementById('historySection').classList.contains('hidden')) renderHistory();
     if (!document.getElementById('adminOrdersContent').classList.contains('hidden')) renderAdminOrders();
@@ -473,44 +462,123 @@ function renderHistory() { const list = document.getElementById('historyList'); 
 window.cancelOrder = function(id) { if(!confirm('Yakin batalkan?')) return; set(ref(db, `orders/${id}/status`), 'cancelled'); showToast('Dibatalkan', 'warning'); }
 window.acceptOrder = function(id) { set(ref(db, `orders/${id}/status`), 'completed'); const html = `<div style="text-align:center;"><h2 style="margin-bottom:10px;">Berikan Rating</h2><p style="color:var(--muted); margin-bottom:20px;">Bagaimana makanannya?</p><div class="rating-stars">${[5,4,3,2,1].map(i => `<input type="radio" id="s${i}" name="r" value="${i}" onclick="rate(${id}, ${i})"><label for="s${i}">★</label>`).join('')}</div></div>`; openModal(html); }
 
-// Rate Function: Update Order Rating + Menu Average Rating
 window.rate = function(oid, val) { 
-  const order = allOrders.find(o => o.id === oid); 
-  if(!order) return; 
-  
-  // 1. Update Order Rating
+  const order = allOrders.find(o => o.id === oid); if(!order) return; 
   set(ref(db, `orders/${oid}/rating`), val);
-  
-  // 2. Update Menu Rating (Sum & Count)
   order.items.forEach(it => { 
     const m = menuData.find(x => x.id === it.menuId); 
     if(m) { 
-      const currentSum = m.ratingSum || 0;
-      const currentCount = m.ratingCount || 0;
-      const newSum = currentSum + val;
-      const newCount = currentCount + 1;
-      set(ref(db, `menu/${m.id}/ratingSum`), newSum); 
-      set(ref(db, `menu/${m.id}/ratingCount`), newCount); 
+      const currentSum = m.ratingSum || 0; const currentCount = m.ratingCount || 0;
+      set(ref(db, `menu/${m.id}/ratingSum`), currentSum + val); 
+      set(ref(db, `menu/${m.id}/ratingCount`), currentCount + 1); 
     } 
   }); 
-  
-  closeModal(); 
-  showToast('Terima kasih!', 'success'); 
+  closeModal(); showToast('Terima kasih!', 'success'); 
 }
 
-window.switchAdminTab = function(tab) { document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('adminOrdersContent').classList.add('hidden'); document.getElementById('adminMenuContent').classList.add('hidden'); if(tab === 'orders') { document.querySelectorAll('.admin-tab-btn')[0].classList.add('active'); document.getElementById('adminOrdersContent').classList.remove('hidden'); renderAdminOrders(); } else { document.querySelectorAll('.admin-tab-btn')[1].classList.add('active'); document.getElementById('adminMenuContent').classList.remove('hidden'); renderAdminMenu(); } }
+window.switchAdminTab = function(tab) { 
+  document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active')); 
+  document.getElementById('adminOrdersContent').classList.add('hidden'); 
+  document.getElementById('adminMenuContent').classList.add('hidden'); 
+  if(tab === 'orders') { document.querySelectorAll('.admin-tab-btn')[0].classList.add('active'); document.getElementById('adminOrdersContent').classList.remove('hidden'); renderAdminOrders(); } 
+  else { document.querySelectorAll('.admin-tab-btn')[1].classList.add('active'); document.getElementById('adminMenuContent').classList.remove('hidden'); renderAdminMenu(); } 
+}
+
 function renderAdminOrders() { const active = allOrders.filter(o => ['pending', 'processing', 'ready'].includes(o.status)).reverse(); const el = document.getElementById('adminOrdersContent'); if(active.length === 0) return el.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px;">Tidak ada pesanan aktif.</p>'; el.innerHTML = active.map(o => `<div class="order-card status-${o.status}"><div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-weight:700;">${o.userIdentity}</span><span class="status-chip chip-${o.status}">${o.status}</span></div><div style="font-size:13px; background:#f8f9fa; padding:8px; border-radius:8px;">${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}</div>${o.note ? `<div style="color:var(--primary); font-size:12px; margin:5px 0;">Note: "${o.note}"</div>` : ''}<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;"><span style="font-weight:700;">Rp ${o.total.toLocaleString()}</span><div>${o.status === 'pending' ? `<button class="btn-action-sm btn-process" onclick="setStat(${o.id},'processing')">Proses</button>` : ''}${o.status === 'processing' ? `<button class="btn-action-sm btn-ready" onclick="setStat(${o.id},'ready')">Selesai</button>` : ''}</div></div></div>`).join(''); }
 window.setStat = function(id, s) { set(ref(db, `orders/${id}/status`), s); showToast('Update status', 'success'); }
-function renderAdminMenu() { const el = document.getElementById('adminMenuContent'); el.innerHTML = `<div style="background:white; padding:20px; border-radius:20px; margin-bottom:15px; box-shadow:var(--shadow);"><h4 style="margin-bottom:15px; font-size:16px;">Tambah Menu Baru</h4><input id="mName" placeholder="Nama Menu" style="width:100%; margin-bottom:10px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px;"><input id="mPrice" type="number" placeholder="Harga" style="width:100%; margin-bottom:10px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px;"><select id="mType" style="width:100%; margin-bottom:10px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px; color:#555;"><option value="makanan">Makanan</option><option value="minuman">Minuman</option></select><input id="mImg" placeholder="URL Gambar" style="width:100%; margin-bottom:15px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px;"><button onclick="saveMenu()" class="btn-main" style="padding:14px; font-size:15px;">Simpan Menu</button></div><div>${menuData.map(m => { 
-  // Display rating in admin list
-  const sum = m.ratingSum || 0; const count = m.ratingCount || 0; const avg = count > 0 ? (sum/count).toFixed(1) : '-';
-  return `<div style="display:flex; align-items:center; justify-content:space-between; background:white; padding:15px; border-radius:16px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.02);">
-    <div><strong style="font-size:15px;">${m.name}</strong><div style="font-size:12px; color:var(--muted); margin-top:2px;">Rp ${m.harga.toLocaleString()} • ${m.available ? 'Tersedia' : 'Habis'} • ★ ${avg}</div></div>
-    <div style="display:flex; gap:8px;"><button onclick="toggleAvail(${m.id})" style="border:none; background:${m.available ? 'var(--success)' : '#eee'}; color:${m.available ? 'white' : '#888'}; width:35px; height:35px; border-radius:10px; cursor:pointer; font-weight:bold;">${m.available ? '✓' : '✕'}</button><button onclick="delMenu(${m.id})" style="border:none; background:var(--danger); color:white; width:35px; height:35px; border-radius:10px; cursor:pointer;">🗑</button></div>
-  </div>`;
-}).join('')}</div>`; }
-window.saveMenu = function() { const name = document.getElementById('mName').value; const harga = parseInt(document.getElementById('mPrice').value); const type = document.getElementById('mType').value; const img = document.getElementById('mImg').value; if(!name || !harga) return showToast('Isi nama & harga', 'warning'); const id = Date.now(); set(ref(db, `menu/${id}`), {id, name, harga, type, img: img || 'https://via.placeholder.com/150', available:true, desc:'', ratingSum:0, ratingCount:0}); showToast('Menu ditambahkan', 'success'); }
-window.toggleAvail = function(id) { const m = menuData.find(x => x.id === id); if(m) set(ref(db, `menu/${id}/available`), !m.available); }
+
+// ================= ADMIN MENU (EDIT & DIM FEATURE) =================
+function renderAdminMenu() { 
+  const el = document.getElementById('adminMenuContent'); 
+  el.innerHTML = `
+    <div style="background:white; padding:20px; border-radius:20px; margin-bottom:15px; box-shadow:var(--shadow);">
+      <h4 id="menuFormTitle" style="margin-bottom:15px; font-size:16px;">Tambah Menu Baru</h4>
+      <input type="hidden" id="editMenuId">
+      <input id="mName" placeholder="Nama Menu" style="width:100%; margin-bottom:10px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px;">
+      <input id="mPrice" type="number" placeholder="Harga" style="width:100%; margin-bottom:10px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px;">
+      <select id="mType" style="width:100%; margin-bottom:10px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px; color:#555;"><option value="makanan">Makanan</option><option value="minuman">Minuman</option></select>
+      <input id="mImg" placeholder="URL Gambar" style="width:100%; margin-bottom:15px; padding:12px; border-radius:12px; border:1px solid #eee; font-size:14px;">
+      <div style="display:flex; gap:10px;">
+        <button onclick="saveMenu()" class="btn-main" style="flex:1; padding:14px; font-size:15px;">Simpan Menu</button>
+        <button onclick="cancelEdit()" class="btn-main" style="flex:1; padding:14px; font-size:15px; background:#eee; color:#333; display:none;" id="cancelEditBtn">Batal</button>
+      </div>
+    </div>
+    <div>${menuData.map(m => { 
+      const sum = m.ratingSum || 0; const count = m.ratingCount || 0; const avg = count > 0 ? (sum/count).toFixed(1) : '-';
+      // Tambah class unavailable-dim jika !m.available
+      return `
+      <div class="admin-menu-item ${m.available ? '' : 'unavailable-dim'}">
+        <div><strong style="font-size:15px;">${m.name}</strong><div style="font-size:12px; color:var(--muted); margin-top:2px;">Rp ${m.harga.toLocaleString()} • ${m.available ? 'Tersedia' : 'Habis'} • ★ ${avg}</div></div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="editMenu(${m.id})" style="border:none; background:#3498db; color:white; width:35px; height:35px; border-radius:10px; cursor:pointer;">✎</button>
+          <button onclick="toggleAvail(${m.id})" style="border:none; background:${m.available ? 'var(--success)' : '#eee'}; color:${m.available ? 'white' : '#888'}; width:35px; height:35px; border-radius:10px; cursor:pointer; font-weight:bold;">${m.available ? '✓' : '✕'}</button>
+          <button onclick="delMenu(${m.id})" style="border:none; background:var(--danger); color:white; width:35px; height:35px; border-radius:10px; cursor:pointer;">🗑</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`; 
+}
+
+window.editMenu = function(id) {
+  const m = menuData.find(x => x.id === id);
+  if(!m) return;
+  document.getElementById('editMenuId').value = id;
+  document.getElementById('mName').value = m.name;
+  document.getElementById('mPrice').value = m.harga;
+  document.getElementById('mType').value = m.type;
+  document.getElementById('mImg').value = m.img;
+  document.getElementById('menuFormTitle').innerText = "Edit Menu: " + m.name;
+  document.getElementById('cancelEditBtn').style.display = "block";
+  document.getElementById('cancelEditBtn').onclick = cancelEdit;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+window.cancelEdit = function() {
+  document.getElementById('editMenuId').value = "";
+  document.getElementById('mName').value = "";
+  document.getElementById('mPrice').value = "";
+  document.getElementById('mType').value = "makanan";
+  document.getElementById('mImg').value = "";
+  document.getElementById('menuFormTitle').innerText = "Tambah Menu Baru";
+  document.getElementById('cancelEditBtn').style.display = "none";
+}
+
+window.saveMenu = function() { 
+  const id = document.getElementById('editMenuId').value;
+  const name = document.getElementById('mName').value; 
+  const harga = parseInt(document.getElementById('mPrice').value); 
+  const type = document.getElementById('mType').value; 
+  const img = document.getElementById('mImg').value; 
+  
+  if(!name || !harga) return showToast('Isi nama & harga', 'warning'); 
+
+  if(id) {
+    // Update existing
+    const m = menuData.find(x => x.id === parseInt(id));
+    if(m) {
+      // Preserve rating and availability
+      set(ref(db, `menu/${id}`), { 
+        id: parseInt(id), name, harga, type, img: img || 'https://via.placeholder.com/150', 
+        desc: m.desc || '', 
+        available: m.available, 
+        ratingSum: m.ratingSum || 0, 
+        ratingCount: m.ratingCount || 0 
+      });
+      showToast('Menu diupdate!', 'success');
+      cancelEdit();
+    }
+  } else {
+    // Add new
+    const newId = Date.now();
+    set(ref(db, `menu/${newId}`), {id: newId, name, harga, type, img: img || 'https://via.placeholder.com/150', available:true, desc:'', ratingSum:0, ratingCount:0}); 
+    showToast('Menu ditambahkan', 'success'); 
+  }
+  // Clear form handled by cancelEdit for update case, manually for new:
+  if(!id) {
+     document.getElementById('mName').value = ""; document.getElementById('mPrice').value = ""; document.getElementById('mImg').value = "";
+  }
+}
+
+window.toggleAvail = function(id) { const m = menuData.find(x => x.id === id); if(m) { set(ref(db, `menu/${id}/available`), !m.available); showToast('Status diubah', 'success'); } }
 window.delMenu = function(id) { if(confirm('Hapus menu?')) { remove(ref(db, `menu/${id}`)); showToast('Terhapus', 'success'); } }
 
 window.openProfile = function() { const html = `<div style="text-align:center;"><h2 style="margin-bottom:5px; background:linear-gradient(45deg, var(--primary), var(--tertiary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">${currentUser.nama}</h2><p style="color:var(--muted); margin-bottom:20px;">${currentUser.email || 'admin@canteen.com'}</p><button onclick="logout()" class="btn-main" style="background:var(--danger);">Keluar</button></div>`; openModal(html); }
